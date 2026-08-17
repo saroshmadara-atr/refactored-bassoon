@@ -148,7 +148,6 @@ fun ClipboardApp(accent: Color = Color(0xFF0B0B0B), startScreen: String = "Onboa
                     .weight(1f)
                     .fillMaxWidth()
                     .background(Color.White)
-                    .verticalScroll(rememberScrollState())
             ) {
                 when {
                     screen == "onboarding" -> OnboardingScreen(accent) { screen = "clips"; tab = "clips" }
@@ -227,6 +226,8 @@ fun OnboardingScreen(accent: Color, onStart: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .fillMaxHeight()
+            .verticalScroll(rememberScrollState())
             .padding(34.dp)
             .padding(top = 52.dp),
         horizontalAlignment = Alignment.Start
@@ -471,6 +472,8 @@ fun ClipRow(
 fun FoldersScreen(clips: List<Clip>, onOpenFolder: (String) -> Unit) {
     Column(modifier = Modifier
         .fillMaxWidth()
+        .fillMaxHeight()
+        .verticalScroll(rememberScrollState())
         .padding(18.dp, 22.dp)) {
         Text("Folders", fontSize = 30.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 20.dp))
         listOf("Work", "Personal", "Snippets").forEach { folderName ->
@@ -513,6 +516,8 @@ fun FoldersScreen(clips: List<Clip>, onOpenFolder: (String) -> Unit) {
 fun SettingsScreen(accent: Color, settings: Map<String, Boolean>, onToggle: (String) -> Unit) {
     Column(modifier = Modifier
         .fillMaxWidth()
+        .fillMaxHeight()
+        .verticalScroll(rememberScrollState())
         .padding(18.dp, 22.dp)) {
         Text("Settings", fontSize = 30.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 22.dp))
 
@@ -611,6 +616,8 @@ fun DetailScreen(
 ) {
     Column(modifier = Modifier
         .fillMaxWidth()
+        .fillMaxHeight()
+        .verticalScroll(rememberScrollState())
         .padding(14.dp, 22.dp)) {
         Row(
             modifier = Modifier
