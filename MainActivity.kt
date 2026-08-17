@@ -308,7 +308,6 @@ fun OnboardingScreen(accent: Color, onStart: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .fillMaxHeight()
             .verticalScroll(rememberScrollState())
             .padding(34.dp)
             .padding(top = 52.dp),
@@ -568,7 +567,6 @@ fun ClipRow(
 fun FoldersScreen(clips: List<Clip>, onOpenFolder: (String) -> Unit) {
     Column(modifier = Modifier
         .fillMaxWidth()
-        .fillMaxHeight()
         .verticalScroll(rememberScrollState())
         .padding(18.dp, 22.dp)) {
         Text("Folders", fontSize = 30.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 20.dp))
@@ -612,7 +610,6 @@ fun FoldersScreen(clips: List<Clip>, onOpenFolder: (String) -> Unit) {
 fun SettingsScreen(accent: Color, settings: Map<String, Boolean>, onToggle: (String) -> Unit) {
     Column(modifier = Modifier
         .fillMaxWidth()
-        .fillMaxHeight()
         .verticalScroll(rememberScrollState())
         .padding(18.dp, 22.dp)) {
         Text("Settings", fontSize = 30.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 22.dp))
@@ -712,7 +709,6 @@ fun DetailScreen(
 ) {
     Column(modifier = Modifier
         .fillMaxWidth()
-        .fillMaxHeight()
         .verticalScroll(rememberScrollState())
         .padding(14.dp, 22.dp)) {
         Row(
@@ -1357,7 +1353,6 @@ fun KeyboardScreen(
 ) {
     Column(modifier = Modifier
         .fillMaxWidth()
-        .fillMaxHeight()
         .verticalScroll(rememberScrollState())) {
         Text(
             "Keyboard",
