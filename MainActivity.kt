@@ -10,6 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -98,6 +99,8 @@ fun ClipboardApp(
     var pinError by remember { mutableStateOf(false) }
     var pin by remember { mutableStateOf("") }
     var pinAction by remember { mutableStateOf<(() -> Unit)?>(null) }
+    var newMessageOpen by remember { mutableStateOf(false) }
+    var newMessageText by remember { mutableStateOf("") }
 
     val unlocked = remember { mutableStateOf(setOf<Int>()) }
     val settings = remember {
@@ -225,13 +228,7 @@ fun ClipboardApp(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(20.dp),
-            onClick = {
-                if (onAddClip != null) {
-                    onAddClip("https://calendar.app/invite/9fa2c — team sync")
-                } else {
-                    addClip()
-                }
-            },
+            onClick = { newMessageOpen = true },
             containerColor = accent,
             contentColor = Color.White,
             shape = RoundedCornerShape(20.dp)
@@ -256,6 +253,25 @@ fun ClipboardApp(
                     pin = ""
                 }
             }, { pinOpen = false; pin = ""; pinAction = null; pinError = false })
+        }
+
+        if (newMessageOpen) {
+            NewMessageModal(
+                clips = clips,
+                newMessageText = newMessageText,
+                onTextChange = { newMessageText = it },
+                onClipSelected = { clipText ->
+                    newMessageText = clipText
+                    addClip(clipText)
+                    newMessageOpen = false
+                    newMessageText = ""
+                    showToast("Clip added")
+                },
+                onClose = { newMessageOpen = false; newMessageText = "" },
+                accent = accent,
+                unlocked = unlocked.value,
+                maskPrivate = settings.value["mask"] as Boolean
+            )
         }
     }
 }
@@ -918,6 +934,129 @@ fun BottomNavigation(currentTab: String, accent: Color, onTabChange: (String) ->
                         fontWeight = FontWeight.Medium,
                         color = if (tab == currentTab) accent else Color(0xFFB4B4B4)
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun NewMessageModal(
+    clips: List<Clip>,
+    newMessageText: String,
+    onTextChange: (String) -> Unit,
+    onClipSelected: (String) -> Unit,
+    onClose: () -> Unit,
+    accent: Color,
+    unlocked: Set<Int>,
+    maskPrivate: Boolean
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable(enabled = true, indication = null, interactionSource = remember { MutableInteractionSource() }) { onClose() }
+    ) {
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .background(Color.White, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+                .padding(bottom = 20.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp, 16.dp, 16.dp, 14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onClose, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.ArrowBack, "", modifier = Modifier.size(24.dp))
+                }
+                Text("New message", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Box(modifier = Modifier.size(32.dp))
+            }
+
+            TextField(
+                value = newMessageText,
+                onValueChange = onTextChange,
+                placeholder = { Text("Tap a clip below to paste, or type…", color = Color(0xFFC0C0C0)) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp, 0.dp, 16.dp, 16.dp)
+                    .background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp)),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color(0xFFF5F5F5),
+                    unfocusedContainerColor = Color(0xFFF5F5F5),
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                ),
+                minLines = 1,
+                maxLines = 3
+            )
+
+            if (clips.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("No clips yet", fontSize = 14.sp, color = Color(0xFF9A9A9A))
+                }
+            } else {
+                Text(
+                    "Recent clips",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF9A9A9A),
+                    modifier = Modifier.padding(16.dp, 0.dp, 16.dp, 12.dp)
+                )
+
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 300.dp)
+                ) {
+                    items(clips.sortedByDescending { it.pinned }) { clip ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onClipSelected(clip.text) }
+                                .padding(16.dp, 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                val displayText = if (clip.private && !unlocked.contains(clip.id) && maskPrivate) {
+                                    "•••••••••••••••••"
+                                } else {
+                                    clip.text.take(50)
+                                }
+                                Text(
+                                    displayText + if (clip.text.length > 50) "…" else "",
+                                    fontSize = 13.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    maxLines = 1
+                                )
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    modifier = Modifier.padding(top = 4.dp)
+                                ) {
+                                    if (clip.pinned) {
+                                        Icon(Icons.Default.PushPin, "", modifier = Modifier.size(11.dp), tint = Color(0xFF0B0B0B))
+                                    }
+                                    Text(clip.folder, fontSize = 11.sp, color = Color(0xFF9A9A9A))
+                                    if (clip.private) {
+                                        Icon(Icons.Default.Lock, "", modifier = Modifier.size(11.dp), tint = Color(0xFF9A9A9A))
+                                    }
+                                }
+                            }
+                            Icon(Icons.Default.ChevronRight, "", modifier = Modifier.size(20.dp), tint = Color(0xFFE0E0E0))
+                        }
+                        Divider(thickness = 0.5.dp, color = Color(0xFFF0F0F0))
+                    }
                 }
             }
         }
