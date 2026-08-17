@@ -1062,7 +1062,7 @@ fun KeyboardSetupScreen(
 
     Column(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxWidth()
             .background(Color.White)
             .verticalScroll(rememberScrollState())
     ) {
@@ -1083,7 +1083,10 @@ fun KeyboardSetupScreen(
 
         Divider(thickness = 0.5.dp, color = Color(0xFFF0F0F0))
 
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1222,7 +1225,7 @@ fun KeyboardPreviewScreen(
 
     Column(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxWidth()
             .background(Color.White)
             .verticalScroll(rememberScrollState())
     ) {
@@ -1243,7 +1246,10 @@ fun KeyboardPreviewScreen(
 
         Divider(thickness = 0.5.dp, color = Color(0xFFF0F0F0))
 
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)) {
             Text(
                 "How it looks",
                 fontSize = 18.sp,
