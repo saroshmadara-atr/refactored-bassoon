@@ -2,6 +2,7 @@ package com.offlineclipboardtextmanager.app
 
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -208,6 +209,7 @@ fun ClipboardApp(
                         { folder = null }, { folder = it; screen = "clips"; tab = "clips" }
                     )
                     screen == "clips" && tab == "folders" -> FoldersScreen(clips) { folder = it; screen = "clips"; tab = "clips" }
+                    screen == "clips" && tab == "keyboard" -> KeyboardScreen(clips, accent, unlocked.value, { showToast("Copied to clipboard") }, settings.value["mask"] as Boolean)
                     screen == "clips" && tab == "settings" -> SettingsScreen(accent, settings.value) { k -> settings.value = settings.value + (k to !(settings.value[k] as Boolean)) }
                     screen == "detail" -> clips.find { it.id == detailId }?.let { clip ->
                         DetailScreen(clip, accent, unlocked.value.contains(clip.id), { deleteClip(clip) }, { togglePin(clip) }, { showToast("Copied to clipboard") }, { togglePrivate(clip) }, { screen = "clips" })
@@ -894,23 +896,104 @@ fun BottomNavigation(currentTab: String, accent: Color, onTabChange: (String) ->
                 .padding(top = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            listOf("clips" to Icons.Default.ContentPaste, "folders" to Icons.Default.Folder, "settings" to Icons.Default.Settings)
-                .forEach { (tab, icon) ->
-                    Column(
+            listOf(
+                "clips" to Icons.Default.ContentPaste,
+                "keyboard" to Icons.Default.KeyboardAlt,
+                "folders" to Icons.Default.Folder,
+                "settings" to Icons.Default.Settings
+            ).forEach { (tab, icon) ->
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { onTabChange(tab) },
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(icon, "", tint = if (tab == currentTab) accent else Color(0xFFB4B4B4), modifier = Modifier.size(24.dp))
+                    Text(
+                        when (tab) {
+                            "keyboard" -> "Keys"
+                            else -> tab.replaceFirstChar { it.uppercase() }
+                        },
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (tab == currentTab) accent else Color(0xFFB4B4B4)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun KeyboardScreen(
+    clips: List<Clip>,
+    accent: Color,
+    unlocked: Set<Int>,
+    onCopy: (Clip) -> Unit,
+    maskPrivate: Boolean
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            "Keyboard",
+            fontSize = 30.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(22.dp, 18.dp, 22.dp, 14.dp)
+        )
+        Text(
+            "Quick access to your clips",
+            fontSize = 13.sp,
+            color = Color(0xFF9A9A9A),
+            modifier = Modifier.padding(22.dp, 0.dp, 22.dp, 18.dp)
+        )
+
+        LazyColumn(modifier = Modifier.fillMaxWidth()) {
+            items(clips.sortedByDescending { it.pinned }) { clip ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.White)
+                        .padding(12.dp, 8.dp)
+                ) {
+                    Row(
                         modifier = Modifier
-                            .weight(1f)
-                            .clickable { onTabChange(tab) },
-                        horizontalAlignment = Alignment.CenterHorizontally
+                            .fillMaxWidth()
+                            .background(Color(0xFFF8F8F8), RoundedCornerShape(12.dp))
+                            .padding(14.dp, 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(icon, "", tint = if (tab == currentTab) accent else Color(0xFFB4B4B4), modifier = Modifier.size(24.dp))
-                        Text(
-                            tab.replaceFirstChar { it.uppercase() },
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = if (tab == currentTab) accent else Color(0xFFB4B4B4)
-                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            val displayText = if (clip.private && !unlocked.contains(clip.id) && maskPrivate) {
+                                "•••••••••••••••••"
+                            } else {
+                                clip.text.take(60)
+                            }
+                            Text(
+                                displayText + if (clip.text.length > 60) "..." else "",
+                                fontSize = 13.sp,
+                                fontFamily = FontFamily.Monospace,
+                                lineHeight = 18.sp,
+                                maxLines = 2
+                            )
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier.padding(top = 6.dp)
+                            ) {
+                                if (clip.pinned) {
+                                    Icon(Icons.Default.PushPin, "", modifier = Modifier.size(11.dp), tint = accent)
+                                }
+                                Text(clip.folder, fontSize = 11.sp, color = Color(0xFF9A9A9A))
+                                if (clip.private) {
+                                    Icon(Icons.Default.Lock, "", modifier = Modifier.size(11.dp), tint = Color(0xFF9A9A9A))
+                                }
+                            }
+                        }
+                        IconButton(onClick = { onCopy(clip) }, modifier = Modifier.size(38.dp)) {
+                            Icon(Icons.Default.ContentCopy, "", modifier = Modifier.size(18.dp))
+                        }
                     }
                 }
+            }
         }
     }
 }
@@ -1125,4 +1208,20 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+
+    fun startFloatingPanel() {
+        val intent = Intent(this, FloatingPanelService::class.java)
+        intent.action = "show"
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
+        }
+    }
+
+    fun stopFloatingPanel() {
+        val intent = Intent(this, FloatingPanelService::class.java)
+        intent.action = "hide"
+        stopService(intent)
+    }
 }
