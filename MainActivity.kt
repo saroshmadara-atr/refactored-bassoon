@@ -453,6 +453,7 @@ fun ClipRow(
     maskPrivate: Boolean
 ) {
     var offset by remember { mutableStateOf(0f) }
+    var isMasked by remember { mutableStateOf(true) }
 
     Box(
         modifier = Modifier
@@ -505,7 +506,7 @@ fun ClipRow(
             }
 
             Column(modifier = Modifier.weight(1f)) {
-                val displayText = if (clip.private && !unlocked.contains(clip.id) && maskPrivate) {
+                val displayText = if (isMasked && (clip.private || maskPrivate)) {
                     "•••••••••••••••••"
                 } else {
                     clip.text
@@ -515,7 +516,7 @@ fun ClipRow(
                     fontSize = 14.5.sp,
                     fontFamily = FontFamily.Monospace,
                     lineHeight = 21.sp,
-                    color = if (clip.private && !unlocked.contains(clip.id) && maskPrivate) Color(0xFFC4C4C4) else Color(0xFF1A1A1A),
+                    color = if (isMasked && (clip.private || maskPrivate)) Color(0xFFC4C4C4) else Color(0xFF1A1A1A),
                     maxLines = 2
                 )
                 Spacer(modifier = Modifier.height(9.dp))
@@ -535,8 +536,21 @@ fun ClipRow(
                 }
             }
 
-            IconButton(onClick = { onCopy(clip) }, modifier = Modifier.size(40.dp)) {
-                Icon(Icons.Default.ContentCopy, "", modifier = Modifier.size(18.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { isMasked = !isMasked }, modifier = Modifier.size(36.dp)) {
+                    Icon(
+                        if (isMasked) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        "",
+                        modifier = Modifier.size(18.dp),
+                        tint = Color(0xFF9A9A9A)
+                    )
+                }
+                IconButton(onClick = { onCopy(clip) }, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Default.ContentCopy, "", modifier = Modifier.size(18.dp))
+                }
             }
         }
     }
