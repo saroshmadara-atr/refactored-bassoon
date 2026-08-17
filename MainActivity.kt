@@ -1351,97 +1351,97 @@ fun KeyboardScreen(
     onOpenSetup: () -> Unit,
     onOpenPreview: () -> Unit
 ) {
-    Column(modifier = Modifier
-        .fillMaxWidth()
-        .verticalScroll(rememberScrollState())) {
-        Text(
-            "Keyboard",
-            fontSize = 30.sp,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(22.dp, 18.dp, 22.dp, 14.dp)
-        )
-        Text(
-            "Quick access to your clips",
-            fontSize = 13.sp,
-            color = Color(0xFF9A9A9A),
-            modifier = Modifier.padding(22.dp, 0.dp, 22.dp, 18.dp)
-        )
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp, 0.dp, 12.dp, 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Button(
-                onClick = onOpenSetup,
+    LazyColumn(modifier = Modifier.fillMaxWidth()) {
+        item {
+            Text(
+                "Keyboard",
+                fontSize = 30.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(22.dp, 18.dp, 22.dp, 14.dp)
+            )
+        }
+        item {
+            Text(
+                "Quick access to your clips",
+                fontSize = 13.sp,
+                color = Color(0xFF9A9A9A),
+                modifier = Modifier.padding(22.dp, 0.dp, 22.dp, 18.dp)
+            )
+        }
+        item {
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .height(48.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF0F0F0)),
-                shape = RoundedCornerShape(12.dp)
+                    .fillMaxWidth()
+                    .padding(12.dp, 0.dp, 12.dp, 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Icon(Icons.Default.Info, "", modifier = Modifier.size(18.dp).padding(end = 6.dp), tint = accent)
-                Text("Setup", fontSize = 13.sp, fontWeight = FontWeight.Medium)
-            }
-            Button(
-                onClick = onOpenPreview,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(48.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = accent),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(Icons.Default.Visibility, "", modifier = Modifier.size(18.dp).padding(end = 6.dp), tint = Color.White)
-                Text("Preview", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color.White)
+                Button(
+                    onClick = onOpenSetup,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF0F0F0)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.Info, "", modifier = Modifier.size(18.dp).padding(end = 6.dp), tint = accent)
+                    Text("Setup", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                }
+                Button(
+                    onClick = onOpenPreview,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = accent),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.Visibility, "", modifier = Modifier.size(18.dp).padding(end = 6.dp), tint = Color.White)
+                    Text("Preview", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color.White)
+                }
             }
         }
-
-        LazyColumn(modifier = Modifier.fillMaxWidth()) {
-            items(clips.sortedByDescending { it.pinned }) { clip ->
-                Box(
+        items(clips.sortedByDescending { it.pinned }) { clip ->
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White)
+                    .padding(12.dp, 8.dp)
+            ) {
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color.White)
-                        .padding(12.dp, 8.dp)
+                        .background(Color(0xFFF8F8F8), RoundedCornerShape(12.dp))
+                        .padding(14.dp, 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color(0xFFF8F8F8), RoundedCornerShape(12.dp))
-                            .padding(14.dp, 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            val displayText = if (clip.private && !unlocked.contains(clip.id) && maskPrivate) {
-                                "•••••••••••••••••"
-                            } else {
-                                clip.text.take(60)
+                    Column(modifier = Modifier.weight(1f)) {
+                        val displayText = if (clip.private && !unlocked.contains(clip.id) && maskPrivate) {
+                            "•••••••••••••••••"
+                        } else {
+                            clip.text.take(60)
+                        }
+                        Text(
+                            displayText + if (clip.text.length > 60) "..." else "",
+                            fontSize = 13.sp,
+                            fontFamily = FontFamily.Monospace,
+                            lineHeight = 18.sp,
+                            maxLines = 2
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.padding(top = 6.dp)
+                        ) {
+                            if (clip.pinned) {
+                                Icon(Icons.Default.PushPin, "", modifier = Modifier.size(11.dp), tint = accent)
                             }
-                            Text(
-                                displayText + if (clip.text.length > 60) "..." else "",
-                                fontSize = 13.sp,
-                                fontFamily = FontFamily.Monospace,
-                                lineHeight = 18.sp,
-                                maxLines = 2
-                            )
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                modifier = Modifier.padding(top = 6.dp)
-                            ) {
-                                if (clip.pinned) {
-                                    Icon(Icons.Default.PushPin, "", modifier = Modifier.size(11.dp), tint = accent)
-                                }
-                                Text(clip.folder, fontSize = 11.sp, color = Color(0xFF9A9A9A))
-                                if (clip.private) {
-                                    Icon(Icons.Default.Lock, "", modifier = Modifier.size(11.dp), tint = Color(0xFF9A9A9A))
-                                }
+                            Text(clip.folder, fontSize = 11.sp, color = Color(0xFF9A9A9A))
+                            if (clip.private) {
+                                Icon(Icons.Default.Lock, "", modifier = Modifier.size(11.dp), tint = Color(0xFF9A9A9A))
                             }
                         }
-                        IconButton(onClick = { onCopy(clip) }, modifier = Modifier.size(38.dp)) {
-                            Icon(Icons.Default.ContentCopy, "", modifier = Modifier.size(18.dp))
-                        }
+                    }
+                    IconButton(onClick = { onCopy(clip) }, modifier = Modifier.size(38.dp)) {
+                        Icon(Icons.Default.ContentCopy, "", modifier = Modifier.size(18.dp))
                     }
                 }
             }
