@@ -49,6 +49,36 @@ data class DragState(
     val moved: Boolean = false
 )
 
+fun categorizeClip(text: String): String {
+    return when {
+        text.contains(Regex("^https?://")) -> "Work"
+        text.contains(Regex("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+")) -> "Work"
+        text.contains(Regex("\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}")) -> "Personal"
+        text.length > 200 -> "Work"
+        else -> "Personal"
+    }
+}
+
+fun extractTags(text: String): List<String> {
+    val tags = mutableListOf<String>()
+    if (text.contains(Regex("^https?://"))) tags.add("link")
+    if (text.contains(Regex("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+"))) tags.add("email")
+    if (text.contains(Regex("\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}"))) tags.add("card")
+    if (text.contains(Regex("\\$\\d+")) || text.contains(Regex("\\d+\\.\\d{2}"))) tags.add("money")
+    return tags.distinct()
+}
+
+fun getTimeString(): String {
+    val now = Date()
+    val seconds = (System.currentTimeMillis() - (now.time - now.time)) / 1000
+    return when {
+        seconds < 60 -> "now"
+        seconds < 3600 -> "${seconds / 60}m"
+        seconds < 86400 -> "${seconds / 3600}h"
+        else -> "yesterday"
+    }
+}
+
 @Composable
 fun ClipboardApp(
     accent: Color = Color(0xFF0B0B0B),
@@ -133,32 +163,13 @@ fun ClipboardApp(
     fun addClip(clipText: String? = null) {
         val newId = (clips.maxOfOrNull { it.id } ?: 0) + 1
         val (text, folder, tags) = if (clipText != null) {
-            Triple(clipText, categorizeClipText(clipText), extractTagsFromText(clipText))
+            Triple(clipText, categorizeClip(clipText), extractTags(clipText))
         } else {
             Triple("https://calendar.app/invite/9fa2c — team sync", "Work", listOf("link"))
         }
-        val newClip = Clip(newId, text, folder, tags, "now")
+        val newClip = Clip(newId, text, folder, tags, getTimeString())
         clips = listOf(newClip) + clips
         showToast("Clip saved")
-    }
-
-    private fun categorizeClipText(text: String): String {
-        return when {
-            text.contains(Regex("^https?://")) -> "Work"
-            text.contains(Regex("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+")) -> "Work"
-            text.contains(Regex("\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}")) -> "Personal"
-            text.length > 200 -> "Work"
-            else -> "Personal"
-        }
-    }
-
-    private fun extractTagsFromText(text: String): List<String> {
-        val tags = mutableListOf<String>()
-        if (text.contains(Regex("^https?://"))) tags.add("link")
-        if (text.contains(Regex("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+"))) tags.add("email")
-        if (text.contains(Regex("\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}"))) tags.add("card")
-        if (text.contains(Regex("\\$\\d+")) || text.contains(Regex("\\d+\\.\\d{2}"))) tags.add("money")
-        return tags.distinct()
     }
 
     fun openClip(clip: Clip) {
@@ -1114,33 +1125,4 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun categorizeClip(text: String): String {
-        return when {
-            text.contains(Regex("^https?://")) -> "Work"
-            text.contains(Regex("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+")) -> "Work"
-            text.contains(Regex("\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}")) -> "Personal"
-            text.length > 200 -> "Work"
-            else -> "Personal"
-        }
-    }
-
-    private fun extractTags(text: String): List<String> {
-        val tags = mutableListOf<String>()
-        if (text.contains(Regex("^https?://"))) tags.add("link")
-        if (text.contains(Regex("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+"))) tags.add("email")
-        if (text.contains(Regex("\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}"))) tags.add("card")
-        if (text.contains(Regex("\\$\\d+")) || text.contains(Regex("\\d+\\.\\d{2}"))) tags.add("money")
-        return tags.distinct()
-    }
-
-    private fun getTimeString(): String {
-        val now = Date()
-        val seconds = (System.currentTimeMillis() - (now.time - now.time)) / 1000
-        return when {
-            seconds < 60 -> "now"
-            seconds < 3600 -> "${seconds / 60}m"
-            seconds < 86400 -> "${seconds / 3600}h"
-            else -> "yesterday"
-        }
-    }
 }
