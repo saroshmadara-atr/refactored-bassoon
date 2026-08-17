@@ -976,12 +976,12 @@ fun NewMessageModal(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .background(Color.White, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
-                .padding(bottom = 20.dp)
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp, 16.dp, 16.dp, 14.dp),
+                    .height(56.dp)
+                    .padding(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -992,86 +992,51 @@ fun NewMessageModal(
                 Box(modifier = Modifier.size(32.dp))
             }
 
-            TextField(
-                value = newMessageText,
-                onValueChange = onTextChange,
-                placeholder = { Text("Tap a clip below to paste, or type…", color = Color(0xFFC0C0C0)) },
+            Divider(thickness = 0.5.dp, color = Color(0xFFF0F0F0))
+
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp, 0.dp, 16.dp, 16.dp)
-                    .background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp)),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color(0xFFF5F5F5),
-                    unfocusedContainerColor = Color(0xFFF5F5F5),
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
-                ),
-                minLines = 1,
-                maxLines = 3
-            )
-
-            if (clips.isEmpty()) {
-                Box(
+                    .padding(16.dp)
+            ) {
+                TextField(
+                    value = newMessageText,
+                    onValueChange = onTextChange,
+                    placeholder = { Text("Tap a clip below to paste, or type…", color = Color(0xFFC0C0C0)) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(200.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("No clips yet", fontSize = 14.sp, color = Color(0xFF9A9A9A))
-                }
-            } else {
-                Text(
-                    "Recent clips",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF9A9A9A),
-                    modifier = Modifier.padding(16.dp, 0.dp, 16.dp, 12.dp)
+                        .background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp)),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color(0xFFF5F5F5),
+                        unfocusedContainerColor = Color(0xFFF5F5F5),
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
+                    ),
+                    minLines = 3,
+                    maxLines = 5
                 )
 
-                LazyColumn(
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = {
+                        if (newMessageText.isNotEmpty()) {
+                            onClipSelected(newMessageText)
+                        }
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 300.dp)
+                        .height(52.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (newMessageText.isEmpty()) Color(0xFFE0E0E0) else accent
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = newMessageText.isNotEmpty()
                 ) {
-                    items(clips.sortedByDescending { it.pinned }) { clip ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onClipSelected(clip.text) }
-                                .padding(16.dp, 10.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                val displayText = if (clip.private && !unlocked.contains(clip.id) && maskPrivate) {
-                                    "•••••••••••••••••"
-                                } else {
-                                    clip.text.take(50)
-                                }
-                                Text(
-                                    displayText + if (clip.text.length > 50) "…" else "",
-                                    fontSize = 13.sp,
-                                    fontFamily = FontFamily.Monospace,
-                                    maxLines = 1
-                                )
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    modifier = Modifier.padding(top = 4.dp)
-                                ) {
-                                    if (clip.pinned) {
-                                        Icon(Icons.Default.PushPin, "", modifier = Modifier.size(11.dp), tint = Color(0xFF0B0B0B))
-                                    }
-                                    Text(clip.folder, fontSize = 11.sp, color = Color(0xFF9A9A9A))
-                                    if (clip.private) {
-                                        Icon(Icons.Default.Lock, "", modifier = Modifier.size(11.dp), tint = Color(0xFF9A9A9A))
-                                    }
-                                }
-                            }
-                            Icon(Icons.Default.ChevronRight, "", modifier = Modifier.size(20.dp), tint = Color(0xFFE0E0E0))
-                        }
-                        Divider(thickness = 0.5.dp, color = Color(0xFFF0F0F0))
-                    }
+                    Text("Save", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color.White)
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
