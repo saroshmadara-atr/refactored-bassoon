@@ -3,6 +3,9 @@ package com.offlineclipboardtextmanager.app
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.provider.Settings
+import android.view.inputmethod.InputMethodManager
+import androidx.activity.compose.BackHandler
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -29,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -101,6 +105,8 @@ fun ClipboardApp(
     var pinAction by remember { mutableStateOf<(() -> Unit)?>(null) }
     var newMessageOpen by remember { mutableStateOf(false) }
     var newMessageText by remember { mutableStateOf("") }
+    var showKeyboardSetup by remember { mutableStateOf(false) }
+    var showKeyboardPreview by remember { mutableStateOf(false) }
 
     val unlocked = remember { mutableStateOf(setOf<Int>()) }
     val settings = remember {
@@ -204,6 +210,8 @@ fun ClipboardApp(
                     .background(Color.White)
             ) {
                 when {
+                    screen == "keyboardSetup" -> KeyboardSetupScreen(accent, { screen = "clips"; tab = "keyboard" }, { showKeyboardPreview = true })
+                    screen == "keyboardPreview" -> KeyboardPreviewScreen(accent, { screen = "clips"; tab = "keyboard" })
                     screen == "onboarding" -> OnboardingScreen(accent) { screen = "clips"; tab = "clips" }
                     screen == "clips" && tab == "clips" -> ClipsScreen(
                         clips, folder, dragState, { dragState = it }, accent, unlocked.value,
@@ -212,7 +220,7 @@ fun ClipboardApp(
                         { folder = null }, { folder = it; screen = "clips"; tab = "clips" }
                     )
                     screen == "clips" && tab == "folders" -> FoldersScreen(clips) { folder = it; screen = "clips"; tab = "clips" }
-                    screen == "clips" && tab == "keyboard" -> KeyboardScreen(clips, accent, unlocked.value, { showToast("Copied to clipboard") }, settings.value["mask"] as Boolean)
+                    screen == "clips" && tab == "keyboard" -> KeyboardScreen(clips, accent, unlocked.value, { showToast("Copied to clipboard") }, settings.value["mask"] as Boolean, { screen = "keyboardSetup" }, { screen = "keyboardPreview" })
                     screen == "clips" && tab == "settings" -> SettingsScreen(accent, settings.value) { k -> settings.value = settings.value + (k to !(settings.value[k] as Boolean)) }
                     screen == "detail" -> clips.find { it.id == detailId }?.let { clip ->
                         DetailScreen(clip, accent, unlocked.value.contains(clip.id), { deleteClip(clip) }, { togglePin(clip) }, { showToast("Copied to clipboard") }, { togglePrivate(clip) }, { screen = "clips" })
@@ -1043,14 +1051,308 @@ fun NewMessageModal(
 }
 
 @Composable
+fun KeyboardSetupScreen(
+    accent: Color,
+    onBack: () -> Unit,
+    onPreview: () -> Unit
+) {
+    BackHandler(onBack = onBack)
+    val context = LocalContext.current
+    val imm = remember { context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .verticalScroll(rememberScrollState())
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack, modifier = Modifier.size(32.dp)) {
+                Icon(Icons.Default.ArrowBack, "", modifier = Modifier.size(24.dp))
+            }
+            Text("Enable Keyboard", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Box(modifier = Modifier.size(32.dp))
+        }
+
+        Divider(thickness = 0.5.dp, color = Color(0xFFF0F0F0))
+
+        Column(modifier = Modifier.padding(16.dp)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFF5F5F5), RoundedCornerShape(16.dp))
+                    .padding(16.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(Color.White, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("⌨️", fontSize = 24.sp)
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text("3 quick steps", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                        Text("Enable in 2 minutes", fontSize = 12.sp, color = Color(0xFF9A9A9A))
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            SetupStepCard(
+                number = "1",
+                title = "Open keyboard settings",
+                body = "Go to your phone's Settings and enable \"Clipboard Manager Keyboard\"",
+                buttonText = "Open Settings",
+                onClick = {
+                    context.startActivity(
+                        Intent(Settings.ACTION_INPUT_METHOD_SETTINGS)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                },
+                accent = accent
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            SetupStepCard(
+                number = "2",
+                title = "Switch to keyboard",
+                body = "In any text field, tap and hold the space bar to select this keyboard",
+                buttonText = "Show Picker",
+                onClick = { imm.showInputMethodPicker() },
+                accent = accent
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            SetupStepCard(
+                number = "3",
+                title = "Start typing",
+                body = "Your clips now appear as a keyboard. Tap any clip to insert it instantly",
+                buttonText = "Preview",
+                onClick = onPreview,
+                accent = accent
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFF0F0F0), RoundedCornerShape(12.dp))
+                    .padding(14.dp)
+            ) {
+                Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("🔒", fontSize = 18.sp)
+                    Text(
+                        "Your typing stays private. The keyboard works offline and needs no internet or account.",
+                        fontSize = 12.sp,
+                        color = Color(0xFF666666),
+                        lineHeight = 18.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+        }
+    }
+}
+
+@Composable
+private fun SetupStepCard(
+    number: String,
+    title: String,
+    body: String,
+    buttonText: String,
+    onClick: () -> Unit,
+    accent: Color
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFF8F8F8), RoundedCornerShape(14.dp))
+            .padding(14.dp)
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .background(accent, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(number, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(body, fontSize = 12.sp, color = Color(0xFF666666), lineHeight = 16.sp)
+                Spacer(modifier = Modifier.height(10.dp))
+                Button(
+                    onClick = onClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = accent),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text(buttonText, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color.White)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun KeyboardPreviewScreen(
+    accent: Color,
+    onBack: () -> Unit
+) {
+    BackHandler(onBack = onBack)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .verticalScroll(rememberScrollState())
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack, modifier = Modifier.size(32.dp)) {
+                Icon(Icons.Default.ArrowBack, "", modifier = Modifier.size(24.dp))
+            }
+            Text("Keyboard Preview", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Box(modifier = Modifier.size(32.dp))
+        }
+
+        Divider(thickness = 0.5.dp, color = Color(0xFFF0F0F0))
+
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                "How it looks",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFE8E8E8), RoundedCornerShape(16.dp))
+                    .padding(16.dp)
+            ) {
+                Column {
+                    Text(
+                        "Recent clips",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF999999),
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+
+                    repeat(5) { index ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color.White, RoundedCornerShape(8.dp))
+                                .padding(10.dp)
+                                .padding(bottom = if (index < 4) 8.dp else 0.dp)
+                        ) {
+                            Text(
+                                when (index) {
+                                    0 -> "Zoom: meeting at 3:00 — passcode"
+                                    1 -> "mango-kestrel-42-violet"
+                                    2 -> "console.log(JSON.stringify(p..."
+                                    3 -> "Order #A-91762 — confirmation"
+                                    else -> "git commit -m \"fix: clamp sw..."
+                                },
+                                fontSize = 12.sp,
+                                fontFamily = FontFamily.Monospace,
+                                maxLines = 1
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                "What happens when you tap",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+
+            listOf(
+                "✓ Clip text is inserted into the text field",
+                "✓ No window switches, no copying & pasting",
+                "✓ Works in any app — messages, email, chat",
+                "✓ Your private clips are masked until unlocked"
+            ).forEach { tip ->
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.padding(bottom = 12.dp)
+                ) {
+                    Text(tip.take(1), fontSize = 14.sp, color = accent, fontWeight = FontWeight.Bold)
+                    Text(tip.drop(1), fontSize = 13.sp, color = Color(0xFF333333))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFFFF8E1), RoundedCornerShape(12.dp))
+                    .padding(14.dp)
+            ) {
+                Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("💡", fontSize = 18.sp)
+                    Text(
+                        "Tap the eye icon next to each clip to hide sensitive text before sharing your screen.",
+                        fontSize = 12.sp,
+                        color = Color(0xFF666666),
+                        lineHeight = 18.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+        }
+    }
+}
+
+@Composable
 fun KeyboardScreen(
     clips: List<Clip>,
     accent: Color,
     unlocked: Set<Int>,
     onCopy: (Clip) -> Unit,
-    maskPrivate: Boolean
+    maskPrivate: Boolean,
+    onOpenSetup: () -> Unit,
+    onOpenPreview: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
+    Column(modifier = Modifier
+        .fillMaxWidth()
+        .fillMaxHeight()
+        .verticalScroll(rememberScrollState())) {
         Text(
             "Keyboard",
             fontSize = 30.sp,
@@ -1063,6 +1365,36 @@ fun KeyboardScreen(
             color = Color(0xFF9A9A9A),
             modifier = Modifier.padding(22.dp, 0.dp, 22.dp, 18.dp)
         )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp, 0.dp, 12.dp, 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Button(
+                onClick = onOpenSetup,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF0F0F0)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.Info, "", modifier = Modifier.size(18.dp).padding(end = 6.dp), tint = accent)
+                Text("Setup", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            }
+            Button(
+                onClick = onOpenPreview,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = accent),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.Visibility, "", modifier = Modifier.size(18.dp).padding(end = 6.dp), tint = Color.White)
+                Text("Preview", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color.White)
+            }
+        }
 
         LazyColumn(modifier = Modifier.fillMaxWidth()) {
             items(clips.sortedByDescending { it.pinned }) { clip ->
