@@ -1,5 +1,8 @@
 package com.offlineclipboardtextmanager.app
 
+import android.content.ClipboardManager
+import android.content.Context
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -25,6 +28,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 data class Clip(
     val id: Int,
@@ -44,7 +50,12 @@ data class DragState(
 )
 
 @Composable
-fun ClipboardApp(accent: Color = Color(0xFF0B0B0B), startScreen: String = "Onboarding") {
+fun ClipboardApp(
+    accent: Color = Color(0xFF0B0B0B),
+    startScreen: String = "Home",
+    initialClips: List<Clip> = emptyList(),
+    onAddClip: ((String) -> Unit)? = null
+) {
     var screen by remember { mutableStateOf(if (startScreen == "Home") "clips" else "onboarding") }
     var tab by remember { mutableStateOf("clips") }
     var folder by remember { mutableStateOf<String?>(null) }
@@ -71,17 +82,21 @@ fun ClipboardApp(accent: Color = Color(0xFF0B0B0B), startScreen: String = "Onboa
 
     var clips by remember {
         mutableStateOf(
-            listOf(
-                Clip(1, "Zoom: meeting at 3:00 — passcode 8842-116", "Work", listOf("meeting"), "2m", true),
-                Clip(2, "mango-kestrel-42-violet", "Personal", listOf("wifi"), "11m", true, true),
-                Clip(3, "console.log(JSON.stringify(payload, null, 2))", "Snippets", listOf("snippet"), "26m"),
-                Clip(4, "214 Alder Street, Apt 6, Portland OR 97210", "Personal", listOf("address"), "40m", private = true),
-                Clip(5, "Order #A-91762 — confirmation sent to inbox", "Work", listOf("order"), "1h"),
-                Clip(6, "git commit -m \"fix: clamp swipe threshold\" && git push", "Snippets", listOf("snippet"), "2h"),
-                Clip(7, "Reschedule the dentist for next Tuesday afternoon", "Personal", emptyList(), "3h"),
-                Clip(8, "Tracking 1Z999AA10123456784 — arrives Thu", "Work", listOf("tracking"), "yesterday"),
-                Clip(9, "Thanks for the quick turnaround — the deck looks great. Let me know if you need anything before Friday.", "Work", listOf("draft"), "yesterday"),
-            )
+            if (initialClips.isNotEmpty()) {
+                initialClips
+            } else {
+                listOf(
+                    Clip(1, "Zoom: meeting at 3:00 — passcode 8842-116", "Work", listOf("meeting"), "2m", true),
+                    Clip(2, "mango-kestrel-42-violet", "Personal", listOf("wifi"), "11m", true, true),
+                    Clip(3, "console.log(JSON.stringify(payload, null, 2))", "Snippets", listOf("snippet"), "26m"),
+                    Clip(4, "214 Alder Street, Apt 6, Portland OR 97210", "Personal", listOf("address"), "40m", private = true),
+                    Clip(5, "Order #A-91762 — confirmation sent to inbox", "Work", listOf("order"), "1h"),
+                    Clip(6, "git commit -m \"fix: clamp swipe threshold\" && git push", "Snippets", listOf("snippet"), "2h"),
+                    Clip(7, "Reschedule the dentist for next Tuesday afternoon", "Personal", emptyList(), "3h"),
+                    Clip(8, "Tracking 1Z999AA10123456784 — arrives Thu", "Work", listOf("tracking"), "yesterday"),
+                    Clip(9, "Thanks for the quick turnaround — the deck looks great. Let me know if you need anything before Friday.", "Work", listOf("draft"), "yesterday"),
+                )
+            }
         )
     }
 
@@ -115,11 +130,35 @@ fun ClipboardApp(accent: Color = Color(0xFF0B0B0B), startScreen: String = "Onboa
         }
     }
 
-    fun addClip() {
+    fun addClip(clipText: String? = null) {
         val newId = (clips.maxOfOrNull { it.id } ?: 0) + 1
-        val newClip = Clip(newId, "https://calendar.app/invite/9fa2c — team sync", "Work", listOf("link"), "now")
+        val (text, folder, tags) = if (clipText != null) {
+            Triple(clipText, categorizeClipText(clipText), extractTagsFromText(clipText))
+        } else {
+            Triple("https://calendar.app/invite/9fa2c — team sync", "Work", listOf("link"))
+        }
+        val newClip = Clip(newId, text, folder, tags, "now")
         clips = listOf(newClip) + clips
         showToast("Clip saved")
+    }
+
+    private fun categorizeClipText(text: String): String {
+        return when {
+            text.contains(Regex("^https?://")) -> "Work"
+            text.contains(Regex("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+")) -> "Work"
+            text.contains(Regex("\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}")) -> "Personal"
+            text.length > 200 -> "Work"
+            else -> "Personal"
+        }
+    }
+
+    private fun extractTagsFromText(text: String): List<String> {
+        val tags = mutableListOf<String>()
+        if (text.contains(Regex("^https?://"))) tags.add("link")
+        if (text.contains(Regex("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+"))) tags.add("email")
+        if (text.contains(Regex("\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}"))) tags.add("card")
+        if (text.contains(Regex("\\$\\d+")) || text.contains(Regex("\\d+\\.\\d{2}"))) tags.add("money")
+        return tags.distinct()
     }
 
     fun openClip(clip: Clip) {
@@ -173,7 +212,13 @@ fun ClipboardApp(accent: Color = Color(0xFF0B0B0B), startScreen: String = "Onboa
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(20.dp),
-            onClick = { addClip() },
+            onClick = {
+                if (onAddClip != null) {
+                    onAddClip("https://calendar.app/invite/9fa2c — team sync")
+                } else {
+                    addClip()
+                }
+            },
             containerColor = accent,
             contentColor = Color.White,
             shape = RoundedCornerShape(20.dp)
@@ -1007,12 +1052,95 @@ fun PinOverlay(
 }
 
 class MainActivity : ComponentActivity() {
+    private var lastClipboardText = ""
+    private val clipboardManager by lazy { getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager }
+    private lateinit var clipsState: MutableState<List<Clip>>
+    private lateinit var addClipCallback: (String) -> Unit
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
-                ClipboardApp(accent = Color(0xFF0B0B0B), startScreen = "Onboarding")
+            clipsState = remember {
+                mutableStateOf(
+                    listOf(
+                        Clip(1, "Zoom: meeting at 3:00 — passcode 8842-116", "Work", listOf("meeting"), "2m", true),
+                        Clip(2, "mango-kestrel-42-violet", "Personal", listOf("wifi"), "11m", true, true),
+                        Clip(3, "console.log(JSON.stringify(payload, null, 2))", "Snippets", listOf("snippet"), "26m"),
+                        Clip(4, "214 Alder Street, Apt 6, Portland OR 97210", "Personal", listOf("address"), "40m", private = true),
+                        Clip(5, "Order #A-91762 — confirmation sent to inbox", "Work", listOf("order"), "1h"),
+                        Clip(6, "git commit -m \"fix: clamp swipe threshold\" && git push", "Snippets", listOf("snippet"), "2h"),
+                        Clip(7, "Reschedule the dentist for next Tuesday afternoon", "Personal", emptyList(), "3h"),
+                        Clip(8, "Tracking 1Z999AA10123456784 — arrives Thu", "Work", listOf("tracking"), "yesterday"),
+                        Clip(9, "Thanks for the quick turnaround — the deck looks great. Let me know if you need anything before Friday.", "Work", listOf("draft"), "yesterday"),
+                    )
+                )
             }
+            addClipCallback = { text ->
+                val newId = (clipsState.value.maxOfOrNull { it.id } ?: 0) + 1
+                val folder = categorizeClip(text)
+                val newClip = Clip(
+                    id = newId,
+                    text = text,
+                    folder = folder,
+                    tags = extractTags(text),
+                    time = getTimeString(),
+                    pinned = false,
+                    private = false
+                )
+                clipsState.value = listOf(newClip) + clipsState.value
+            }
+            MaterialTheme {
+                ClipboardApp(accent = Color(0xFF0B0B0B), startScreen = "Home", initialClips = clipsState.value) { clipText ->
+                    addClipCallback(clipText)
+                }
+            }
+        }
+        setupClipboardListener()
+    }
+
+    private fun setupClipboardListener() {
+        clipboardManager.addPrimaryClipChangedListener {
+            val clip = clipboardManager.primaryClip
+            if (clip != null && clip.itemCount > 0) {
+                val text = clip.getItemAt(0).text?.toString() ?: return@addPrimaryClipChangedListener
+
+                if (text.isNotEmpty() && text != lastClipboardText) {
+                    lastClipboardText = text
+                    if (::addClipCallback.isInitialized) {
+                        addClipCallback(text)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun categorizeClip(text: String): String {
+        return when {
+            text.contains(Regex("^https?://")) -> "Work"
+            text.contains(Regex("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+")) -> "Work"
+            text.contains(Regex("\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}")) -> "Personal"
+            text.length > 200 -> "Work"
+            else -> "Personal"
+        }
+    }
+
+    private fun extractTags(text: String): List<String> {
+        val tags = mutableListOf<String>()
+        if (text.contains(Regex("^https?://"))) tags.add("link")
+        if (text.contains(Regex("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+"))) tags.add("email")
+        if (text.contains(Regex("\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}"))) tags.add("card")
+        if (text.contains(Regex("\\$\\d+")) || text.contains(Regex("\\d+\\.\\d{2}"))) tags.add("money")
+        return tags.distinct()
+    }
+
+    private fun getTimeString(): String {
+        val now = Date()
+        val seconds = (System.currentTimeMillis() - (now.time - now.time)) / 1000
+        return when {
+            seconds < 60 -> "now"
+            seconds < 3600 -> "${seconds / 60}m"
+            seconds < 86400 -> "${seconds / 3600}h"
+            else -> "yesterday"
         }
     }
 }
