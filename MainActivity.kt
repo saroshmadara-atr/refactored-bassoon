@@ -235,7 +235,7 @@ fun ClipboardApp(
         if (screen == "clips" && tab == "clips") FloatingActionButton(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(20.dp),
+                .padding(end = 20.dp, bottom = 90.dp),
             onClick = { newMessageOpen = true },
             containerColor = accent,
             contentColor = Color.White,
