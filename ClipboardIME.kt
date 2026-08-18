@@ -2,18 +2,16 @@ package com.offlineclipboardtextmanager.app
 
 import android.content.Context
 import android.inputmethodservice.InputMethodService
-import android.inputmethodservice.KeyboardView
-import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
+import android.widget.LinearLayout
 import android.widget.FrameLayout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -23,33 +21,46 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 class ClipboardIME : InputMethodService() {
-    private val clipboardManager by lazy { getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager }
-    private var clips = mutableStateOf(emptyList<Clip>())
+    private var composeView: ComposeView? = null
+    private var clipState = mutableStateOf(emptyList<Clip>())
+    private var inputView: View? = null
 
     override fun onCreateInputView(): View {
-        val composeView = ComposeView(this).apply {
-            setContent {
-                MaterialTheme {
-                    KeyboardView(clips.value, { text ->
-                        val inputConnection = currentInputConnection
-                        inputConnection?.commitText(text, text.length)
-                    })
+        inputView = LinearLayout(this).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dpToPx(300)
+            )
+            orientation = LinearLayout.VERTICAL
+
+            composeView = ComposeView(this@ClipboardIME).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+                setBackgroundColor(android.graphics.Color.WHITE)
+                setContent {
+                    MaterialTheme {
+                        KeyboardView(clipState.value) { text ->
+                            currentInputConnection?.commitText(text, text.length)
+                        }
+                    }
                 }
             }
+            addView(composeView)
         }
 
         loadClips()
-        return composeView
+        return inputView!!
     }
 
     private fun loadClips() {
-        val prefs = getSharedPreferences("clips", Context.MODE_PRIVATE)
-        val clipText = prefs.getString("clips_json", null)
-        clips.value = listOf(
+        clipState.value = listOf(
             Clip(1, "Zoom: meeting at 3:00 — passcode 8842-116", "Work", listOf("meeting"), "2m", true),
             Clip(2, "mango-kestrel-42-violet", "Personal", listOf("wifi"), "11m", true, true),
             Clip(3, "console.log(JSON.stringify(payload, null, 2))", "Snippets", listOf("snippet"), "26m"),
@@ -63,6 +74,16 @@ class ClipboardIME : InputMethodService() {
         super.onStartInputView(attribute, restarting)
         loadClips()
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        composeView = null
+        inputView = null
+    }
+
+    private fun dpToPx(dp: Int): Int {
+        return (dp * resources.displayMetrics.density).toInt()
+    }
 }
 
 @Composable
@@ -70,19 +91,20 @@ fun KeyboardView(clips: List<Clip>, onClipSelected: (String) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFFF5F5F5))
+            .background(Color.White)
     ) {
         Text(
-            "Clips",
+            "Keyboard",
             fontSize = 14.sp,
-            modifier = Modifier.padding(12.dp, 12.dp, 12.dp, 8.dp)
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(14.dp)
         )
 
         if (clips.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(150.dp),
+                    .height(100.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text("No clips yet", fontSize = 13.sp, color = Color(0xFF9A9A9A))
@@ -91,15 +113,14 @@ fun KeyboardView(clips: List<Clip>, onClipSelected: (String) -> Unit) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 250.dp)
+                    .heightIn(max = 280.dp)
             ) {
                 items(clips) { clip ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onClipSelected(clip.text) }
-                            .background(Color.White)
-                            .padding(12.dp, 10.dp),
+                            .padding(14.dp, 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -108,12 +129,14 @@ fun KeyboardView(clips: List<Clip>, onClipSelected: (String) -> Unit) {
                                 clip.text.take(40) + if (clip.text.length > 40) "..." else "",
                                 fontSize = 12.sp,
                                 fontFamily = FontFamily.Monospace,
-                                maxLines = 1
+                                maxLines = 1,
+                                color = Color(0xFF1A1A1A)
                             )
                             Text(
                                 clip.folder,
                                 fontSize = 10.sp,
-                                color = Color(0xFF9A9A9A)
+                                color = Color(0xFF9A9A9A),
+                                modifier = Modifier.padding(top = 4.dp)
                             )
                         }
                         Icon(Icons.Default.ContentCopy, "", modifier = Modifier.size(16.dp), tint = Color(0xFF9A9A9A))
