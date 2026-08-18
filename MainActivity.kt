@@ -1401,53 +1401,6 @@ fun KeyboardScreen(
                 }
             }
         }
-        items(clips.sortedByDescending { it.pinned }) { clip ->
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White)
-                    .padding(0.dp, 8.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFFF8F8F8), RoundedCornerShape(12.dp))
-                        .padding(14.dp, 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        val displayText = if (clip.private && !unlocked.contains(clip.id) && maskPrivate) {
-                            "•••••••••••••••••"
-                        } else {
-                            clip.text.take(60)
-                        }
-                        Text(
-                            displayText + if (clip.text.length > 60) "..." else "",
-                            fontSize = 13.sp,
-                            fontFamily = FontFamily.Monospace,
-                            lineHeight = 18.sp,
-                            maxLines = 2
-                        )
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.padding(top = 6.dp)
-                        ) {
-                            if (clip.pinned) {
-                                Icon(Icons.Default.PushPin, "", modifier = Modifier.size(11.dp), tint = accent)
-                            }
-                            Text(clip.folder, fontSize = 11.sp, color = Color(0xFF9A9A9A))
-                            if (clip.private) {
-                                Icon(Icons.Default.Lock, "", modifier = Modifier.size(11.dp), tint = Color(0xFF9A9A9A))
-                            }
-                        }
-                    }
-                    IconButton(onClick = { onCopy(clip) }, modifier = Modifier.size(38.dp)) {
-                        Icon(Icons.Default.ContentCopy, "", modifier = Modifier.size(18.dp))
-                    }
-                }
-            }
-        }
     }
 }
 
