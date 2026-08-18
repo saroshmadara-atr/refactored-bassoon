@@ -833,17 +833,19 @@ fun SearchScreen(
             TextField(
                 value = query,
                 onValueChange = onQueryChange,
-                placeholder = { Text("Search clips") },
+                placeholder = { Text("Search clips", color = Color(0xFF9A9A9A)) },
                 modifier = Modifier
                     .weight(1f)
-                    .height(48.dp)
+                    .height(56.dp)
                     .background(Color(0xFFF4F4F4), RoundedCornerShape(14.dp)),
                 leadingIcon = { Icon(Icons.Default.Search, "", tint = Color(0xFF9A9A9A)) },
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color(0xFFF4F4F4),
                     unfocusedContainerColor = Color(0xFFF4F4F4),
                     focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
+                    unfocusedIndicatorColor = Color.Transparent,
+                    focusedTextColor = Color(0xFF1A1A1A),
+                    unfocusedTextColor = Color(0xFF1A1A1A)
                 )
             )
         }
@@ -861,7 +863,7 @@ fun SearchScreen(
                         border = BorderStroke(1.3.dp, Color(0xFFECECEC)),
                         shape = RoundedCornerShape(20.dp)
                     ) {
-                        Text(tag, fontSize = 14.sp)
+                        Text(tag, fontSize = 14.sp, color = Color(0xFF1A1A1A))
                     }
                 }
             }
@@ -903,7 +905,7 @@ fun SearchClipRow(clip: Clip, unlocked: Set<Int>, onOpenDetail: (Clip) -> Unit, 
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 val displayText = if (clip.private && !unlocked.contains(clip.id) && maskPrivate) "•••••••••••••••••" else clip.text
-                Text(displayText, fontSize = 14.sp, fontFamily = FontFamily.Monospace, lineHeight = 21.sp, maxLines = 1)
+                Text(displayText, fontSize = 14.sp, fontFamily = FontFamily.Monospace, lineHeight = 21.sp, maxLines = 1, color = Color(0xFF1A1A1A))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 6.dp)) {
                     Text(clip.folder, fontSize = 12.sp, color = Color(0xFF9A9A9A))
                     Text("·", fontSize = 12.sp, color = Color(0xFF9A9A9A))
