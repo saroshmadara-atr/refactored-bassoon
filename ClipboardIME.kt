@@ -5,10 +5,13 @@ import android.inputmethodservice.InputMethodService
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
+import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.graphics.Color as AndroidColor
+import android.view.KeyEvent
 
 class ClipboardIME : InputMethodService() {
     private val clips = listOf(
@@ -20,32 +23,194 @@ class ClipboardIME : InputMethodService() {
         Clip(6, "git commit -m \"fix: clamp swipe threshold\" && git push", "Snippets", listOf("snippet"), "2h"),
     )
 
-    override fun onCreateInputView(): View {
-        return createKeyboardView()
-    }
+    private var isClipsMode = false
+    private lateinit var container: FrameLayout
+    private lateinit var keyboardView: View
+    private lateinit var clipsView: View
+    private lateinit var clipButton: Button
+    private lateinit var backButton: Button
 
-    private fun createKeyboardView(): View {
-        val rootLayout = LinearLayout(this).apply {
+    override fun onCreateInputView(): View {
+        container = FrameLayout(this).apply {
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 dpToPx(300)
+            )
+        }
+
+        keyboardView = createKeyboard()
+        clipsView = createClipsView()
+
+        container.addView(keyboardView)
+        container.addView(clipsView)
+
+        showKeyboard()
+        return container
+    }
+
+    private fun createKeyboard(): View {
+        val layout = LinearLayout(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
             )
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(AndroidColor.WHITE)
         }
 
-        val headerText = TextView(this).apply {
+        val topBar = LinearLayout(this).apply {
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
+                dpToPx(44)
             )
-            text = "Keyboard"
-            textSize = 14f
-            setTextColor(AndroidColor.BLACK)
-            setPadding(dpToPx(14), dpToPx(14), dpToPx(14), dpToPx(8))
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            orientation = LinearLayout.HORIZONTAL
+            setBackgroundColor(AndroidColor.parseColor("#F5F5F5"))
         }
-        rootLayout.addView(headerText)
+
+        clipButton = Button(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                dpToPx(44),
+                dpToPx(44)
+            )
+            text = "📋"
+            textSize = 20f
+            setBackgroundColor(AndroidColor.TRANSPARENT)
+            setOnClickListener { showClips() }
+        }
+        topBar.addView(clipButton)
+
+        layout.addView(topBar)
+
+        val keyboardRows = listOf(
+            listOf("Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"),
+            listOf("A", "S", "D", "F", "G", "H", "J", "K", "L"),
+            listOf("Z", "X", "C", "V", "B", "N", "M")
+        )
+
+        keyboardRows.forEach { row ->
+            val rowLayout = LinearLayout(this).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    dpToPx(45)
+                )
+                orientation = LinearLayout.HORIZONTAL
+                setPadding(dpToPx(4), dpToPx(4), dpToPx(4), dpToPx(4))
+            }
+
+            row.forEach { key ->
+                val button = Button(this).apply {
+                    layoutParams = LinearLayout.LayoutParams(
+                        0,
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        1f
+                    )
+                    text = key
+                    textSize = 14f
+                    setBackgroundColor(AndroidColor.parseColor("#FFFFFF"))
+                    setTextColor(AndroidColor.parseColor("#1A1A1A"))
+                    setOnClickListener {
+                        currentInputConnection?.commitText(key.lowercase(), 1)
+                    }
+                    margin = dpToPx(2)
+                }
+                rowLayout.addView(button)
+            }
+
+            layout.addView(rowLayout)
+        }
+
+        val bottomRow = LinearLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dpToPx(45)
+            )
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(dpToPx(4), dpToPx(4), dpToPx(4), dpToPx(4))
+        }
+
+        val spaceButton = Button(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                1f
+            )
+            text = "Space"
+            textSize = 12f
+            setBackgroundColor(AndroidColor.parseColor("#FFFFFF"))
+            setOnClickListener {
+                currentInputConnection?.commitText(" ", 1)
+            }
+            margin = dpToPx(2)
+        }
+        bottomRow.addView(spaceButton)
+
+        val backspaceButton = Button(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                dpToPx(60),
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            text = "⌫"
+            textSize = 20f
+            setBackgroundColor(AndroidColor.parseColor("#FFFFFF"))
+            setOnClickListener {
+                currentInputConnection?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL))
+            }
+            margin = dpToPx(2)
+        }
+        bottomRow.addView(backspaceButton)
+
+        layout.addView(bottomRow)
+
+        return layout
+    }
+
+    private fun createClipsView(): View {
+        val layout = LinearLayout(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(AndroidColor.WHITE)
+            visibility = View.GONE
+        }
+
+        val topBar = LinearLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dpToPx(44)
+            )
+            orientation = LinearLayout.HORIZONTAL
+            setBackgroundColor(AndroidColor.parseColor("#F5F5F5"))
+        }
+
+        val titleText = TextView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                1f
+            )
+            text = "Clips"
+            textSize = 16f
+            setTextColor(AndroidColor.BLACK)
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            setPadding(dpToPx(14), 0, 0, 0)
+        }
+        topBar.addView(titleText)
+
+        backButton = Button(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                dpToPx(44),
+                dpToPx(44)
+            )
+            text = "⌨"
+            textSize = 20f
+            setBackgroundColor(AndroidColor.TRANSPARENT)
+            setOnClickListener { showKeyboard() }
+        }
+        topBar.addView(backButton)
+
+        layout.addView(topBar)
 
         val scrollView = ScrollView(this).apply {
             layoutParams = LinearLayout.LayoutParams(
@@ -68,9 +233,9 @@ class ClipboardIME : InputMethodService() {
         }
 
         scrollView.addView(clipsContainer)
-        rootLayout.addView(scrollView)
+        layout.addView(scrollView)
 
-        return rootLayout
+        return layout
     }
 
     private fun createClipItemView(clip: Clip): View {
@@ -84,6 +249,7 @@ class ClipboardIME : InputMethodService() {
             isFocusable = true
             setOnClickListener {
                 currentInputConnection?.commitText(clip.text, clip.text.length)
+                showKeyboard()
             }
             setPadding(dpToPx(14), dpToPx(12), dpToPx(14), dpToPx(12))
         }
@@ -123,6 +289,18 @@ class ClipboardIME : InputMethodService() {
         itemLayout.addView(divider)
 
         return itemLayout
+    }
+
+    private fun showKeyboard() {
+        keyboardView.visibility = View.VISIBLE
+        clipsView.visibility = View.GONE
+        isClipsMode = false
+    }
+
+    private fun showClips() {
+        keyboardView.visibility = View.GONE
+        clipsView.visibility = View.VISIBLE
+        isClipsMode = true
     }
 
     private fun dpToPx(dp: Int): Int {
