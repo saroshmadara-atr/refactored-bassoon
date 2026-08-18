@@ -1351,13 +1351,15 @@ fun KeyboardScreen(
     onOpenSetup: () -> Unit,
     onOpenPreview: () -> Unit
 ) {
-    LazyColumn(modifier = Modifier.fillMaxWidth()) {
+    LazyColumn(modifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 16.dp)) {
         item {
             Text(
                 "Keyboard",
                 fontSize = 30.sp,
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(22.dp, 18.dp, 22.dp, 14.dp)
+                modifier = Modifier.padding(6.dp, 18.dp, 6.dp, 14.dp)
             )
         }
         item {
@@ -1365,14 +1367,14 @@ fun KeyboardScreen(
                 "Quick access to your clips",
                 fontSize = 13.sp,
                 color = Color(0xFF9A9A9A),
-                modifier = Modifier.padding(22.dp, 0.dp, 22.dp, 18.dp)
+                modifier = Modifier.padding(6.dp, 0.dp, 6.dp, 18.dp)
             )
         }
         item {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(12.dp, 0.dp, 12.dp, 16.dp),
+                    .padding(0.dp, 0.dp, 0.dp, 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Button(
@@ -1404,7 +1406,7 @@ fun KeyboardScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color.White)
-                    .padding(12.dp, 8.dp)
+                    .padding(0.dp, 8.dp)
             ) {
                 Row(
                     modifier = Modifier
