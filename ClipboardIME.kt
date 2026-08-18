@@ -99,11 +99,13 @@ class ClipboardIME : InputMethodService() {
 
             row.forEach { key ->
                 val button = Button(this).apply {
-                    layoutParams = LinearLayout.LayoutParams(
+                    val params = LinearLayout.LayoutParams(
                         0,
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         1f
                     )
+                    params.setMargins(dpToPx(2), dpToPx(2), dpToPx(2), dpToPx(2))
+                    layoutParams = params
                     text = key
                     textSize = 14f
                     setBackgroundColor(AndroidColor.parseColor("#FFFFFF"))
@@ -111,7 +113,6 @@ class ClipboardIME : InputMethodService() {
                     setOnClickListener {
                         currentInputConnection?.commitText(key.lowercase(), 1)
                     }
-                    margin = dpToPx(2)
                 }
                 rowLayout.addView(button)
             }
@@ -129,33 +130,35 @@ class ClipboardIME : InputMethodService() {
         }
 
         val spaceButton = Button(this).apply {
-            layoutParams = LinearLayout.LayoutParams(
+            val params = LinearLayout.LayoutParams(
                 0,
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 1f
             )
+            params.setMargins(dpToPx(2), dpToPx(2), dpToPx(2), dpToPx(2))
+            layoutParams = params
             text = "Space"
             textSize = 12f
             setBackgroundColor(AndroidColor.parseColor("#FFFFFF"))
             setOnClickListener {
                 currentInputConnection?.commitText(" ", 1)
             }
-            margin = dpToPx(2)
         }
         bottomRow.addView(spaceButton)
 
         val backspaceButton = Button(this).apply {
-            layoutParams = LinearLayout.LayoutParams(
+            val params = LinearLayout.LayoutParams(
                 dpToPx(60),
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
+            params.setMargins(dpToPx(2), dpToPx(2), dpToPx(2), dpToPx(2))
+            layoutParams = params
             text = "⌫"
             textSize = 20f
             setBackgroundColor(AndroidColor.parseColor("#FFFFFF"))
             setOnClickListener {
                 currentInputConnection?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL))
             }
-            margin = dpToPx(2)
         }
         bottomRow.addView(backspaceButton)
 
