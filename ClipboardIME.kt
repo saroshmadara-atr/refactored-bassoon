@@ -14,6 +14,20 @@ import android.graphics.Color as AndroidColor
 import android.view.KeyEvent
 
 class ClipboardIME : InputMethodService() {
+    private val EMOJIS: List<String> = listOf(
+        "⚽", "🥅", "🏆", "🏅", "🥇", "🥈", "🥉", "🎽", "👟", "🧤", "📣", "🎯", "🔔", "🎉", "🎊", "🙌",
+        "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘",
+        "😗", "😙", "😚", "😋", "😛", "😝", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🥳", "🤩", "😏", "😒",
+        "😞", "😔", "😟", "😕", "🙁", "😣", "😖", "😫", "😩", "🥺", "😢", "😭", "😤", "😠", "😡", "🤬",
+        "😳", "🥵", "🥶", "😱", "😨", "😰", "😥", "😓", "🤗", "🤔", "🤭", "🤫", "😶", "😐", "😑", "😬",
+        "🙄", "😮", "😲", "🥱", "😴", "🤤", "😪", "🤐", "🥴", "🤢", "🤮", "🤧", "😷", "🤒", "🤕", "🤠",
+        "👍", "👎", "👌", "✌️", "🤞", "🤟", "🤘", "👏", "👐", "🙏", "💪", "👊", "✊", "🤝", "👋", "🤙",
+        "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔", "❣️", "💕", "💞", "💓", "💗", "💖",
+        "💘", "💝", "✨", "⭐", "🌟", "💫", "🔥", "💥", "⚡", "💯", "👑", "✅", "❌", "⚠️", "❓", "❗",
+        "🐶", "🐱", "🦁", "🐯", "🐻", "🐼", "🐸", "🐵", "🦄", "🍕", "🍔", "🍟", "🌭", "🍿", "🍺", "🍻",
+        "🥤", "☕", "🎂", "🍰", "🎁", "🎈", "💬", "💭", "👀", "🤙"
+    )
+
     private val clips = listOf(
         Clip(1, "Zoom: meeting at 3:00 — passcode 8842-116", "Work", listOf("meeting"), "2m", true),
         Clip(2, "mango-kestrel-42-violet", "Personal", listOf("wifi"), "11m", true, true),
@@ -23,12 +37,22 @@ class ClipboardIME : InputMethodService() {
         Clip(6, "git commit -m \"fix: clamp swipe threshold\" && git push", "Snippets", listOf("snippet"), "2h"),
     )
 
+    private var cfgCrest = true
+    private var cfgCopy = true
+    private var cfgEmoji = true
+    private var cfgGif = true
+    private var cfgMic = true
+    private var cfgSettings = true
+
     private var isClipsMode = false
+    private var isEmojiMode = false
     private lateinit var container: FrameLayout
     private lateinit var keyboardView: View
     private lateinit var clipsView: View
+    private lateinit var emojiView: View
     private lateinit var clipButton: Button
     private lateinit var backButton: Button
+    private lateinit var emojiButton: Button
 
     override fun onCreateInputView(): View {
         container = FrameLayout(this).apply {
@@ -40,9 +64,11 @@ class ClipboardIME : InputMethodService() {
 
         keyboardView = createKeyboard()
         clipsView = createClipsView()
+        emojiView = createEmojiView()
 
         container.addView(keyboardView)
         container.addView(clipsView)
+        container.addView(emojiView)
 
         showKeyboard()
         return container
@@ -78,6 +104,20 @@ class ClipboardIME : InputMethodService() {
             setOnClickListener { showClips() }
         }
         topBar.addView(clipButton)
+
+        if (cfgEmoji) {
+            emojiButton = Button(this).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    dpToPx(44),
+                    dpToPx(44)
+                )
+                text = "😊"
+                textSize = 20f
+                setBackgroundColor(AndroidColor.TRANSPARENT)
+                setOnClickListener { showEmoji() }
+            }
+            topBar.addView(emojiButton)
+        }
 
         layout.addView(topBar)
 
@@ -294,16 +334,145 @@ class ClipboardIME : InputMethodService() {
         return itemLayout
     }
 
+    private fun createEmojiView(): View {
+        val layout = LinearLayout(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(AndroidColor.WHITE)
+            visibility = View.GONE
+        }
+
+        val topBar = LinearLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dpToPx(44)
+            )
+            orientation = LinearLayout.HORIZONTAL
+            setBackgroundColor(AndroidColor.parseColor("#F5F5F5"))
+        }
+
+        val titleText = TextView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                1f
+            )
+            text = "Emojis"
+            textSize = 16f
+            setTextColor(AndroidColor.BLACK)
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            setPadding(dpToPx(14), 0, 0, 0)
+        }
+        topBar.addView(titleText)
+
+        val backButton = Button(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                dpToPx(44),
+                dpToPx(44)
+            )
+            text = "⌨"
+            textSize = 20f
+            setBackgroundColor(AndroidColor.TRANSPARENT)
+            setOnClickListener { showKeyboard() }
+        }
+        topBar.addView(backButton)
+
+        layout.addView(topBar)
+
+        val scrollView = ScrollView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        }
+
+        val emojiGrid = LinearLayout(this).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+            orientation = LinearLayout.VERTICAL
+        }
+
+        var row = LinearLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dpToPx(50)
+            )
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(dpToPx(4), dpToPx(4), dpToPx(4), dpToPx(4))
+        }
+
+        var columnCount = 0
+        EMOJIS.forEach { emoji ->
+            val button = Button(this).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    0,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    1f
+                )
+                text = emoji
+                textSize = 24f
+                setBackgroundColor(AndroidColor.parseColor("#FFFFFF"))
+                val params = layoutParams as LinearLayout.LayoutParams
+                params.setMargins(dpToPx(2), dpToPx(2), dpToPx(2), dpToPx(2))
+                layoutParams = params
+                setOnClickListener {
+                    currentInputConnection?.commitText(emoji, 1)
+                }
+            }
+            row.addView(button)
+            columnCount++
+
+            if (columnCount == 6) {
+                emojiGrid.addView(row)
+                row = LinearLayout(this).apply {
+                    layoutParams = LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        dpToPx(50)
+                    )
+                    orientation = LinearLayout.HORIZONTAL
+                    setPadding(dpToPx(4), dpToPx(4), dpToPx(4), dpToPx(4))
+                }
+                columnCount = 0
+            }
+        }
+
+        if (columnCount > 0) {
+            emojiGrid.addView(row)
+        }
+
+        scrollView.addView(emojiGrid)
+        layout.addView(scrollView)
+
+        return layout
+    }
+
     private fun showKeyboard() {
         keyboardView.visibility = View.VISIBLE
         clipsView.visibility = View.GONE
+        emojiView.visibility = View.GONE
         isClipsMode = false
+        isEmojiMode = false
     }
 
     private fun showClips() {
         keyboardView.visibility = View.GONE
         clipsView.visibility = View.VISIBLE
+        emojiView.visibility = View.GONE
         isClipsMode = true
+        isEmojiMode = false
+    }
+
+    private fun showEmoji() {
+        keyboardView.visibility = View.GONE
+        clipsView.visibility = View.GONE
+        emojiView.visibility = View.VISIBLE
+        isClipsMode = false
+        isEmojiMode = true
     }
 
     private fun dpToPx(dp: Int): Int {
